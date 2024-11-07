@@ -157,7 +157,7 @@ using splitWhen =
     typename splitWhen_<pred, typename in::tail, typename in::head>::type;
 
 template <char c> struct is_space {
-  constexpr static bool value = c == ' ';
+  constexpr static bool value = c == ' ' or c == '\t' or c == '\n';
 };
 
 template <char a, char b> struct split_types {
@@ -174,16 +174,67 @@ struct tokenize_
     : returns<cat<tuple<typename splitWhen<split_types, str>::A>,
                   tokenize<typename splitWhen<split_types, str>::B>>> {};
 
-using hello_world =
-    tstring<'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'>;
+template <template <typename> typename pred, typename in, typename out>
+struct filter__;
+template <template <typename> typename pred, typename in, typename out>
+using filter_ = filter__<pred, in, out>::type;
+
+template <template <typename> typename pred, typename out>
+struct filter__<pred, tstring<>, out> : returns<out> {};
+template <template <typename> typename pred, typename in, typename out>
+struct filter__
+    : returns<if_else<
+          pred<typename in::head>::value, filter_<pred, typename in::tail, out>,
+          filter_<pred, typename in::tail, cat<typename in::head, out>>>> {};
+
+template <bool a, bool b> struct or_t {
+  constexpr static bool value = a or b;
+};
+template <bool a, bool b> constexpr static bool or_v = or_t<a, b>::value;
+template <bool a, bool b> struct and_t {
+  constexpr static bool value = a and b;
+};
+template <bool a, bool b> constexpr static bool and_v = and_t<a, b>::value;
+
+template <template <typename> typename pred, typename in>
+using filter = filter_<pred, in, tstring<>>;
+
+template <template <char> typename pred, template <bool, bool> typename comb,
+          typename str>
+struct multi_;
+template <template <char> typename pred, template <bool, bool> typename comb,
+          typename str>
+constexpr static bool multi = multi_<pred, comb, str>::value;
+
+template <template <char> typename pred, template <bool, bool> typename comb,
+          char a, char b>
+struct multi_<pred, comb, tstring<a, b>> {
+  constexpr static bool value = comb<pred<a>::value, pred<b>::value>::value;
+};
+
+template <template <char> typename pred, template <bool, bool> typename comb,
+          char c, char... cs>
+struct multi_<pred, comb, tstring<c, cs...>> {
+  constexpr static bool value =
+      comb<pred<c>::value, multi<pred, comb, tstring<cs...>>>::value;
+};
+template <template <char> typename pred, typename str>
+constexpr static bool any = multi<pred, or_t, str>;
+template <template <char> typename pred, typename str>
+constexpr static bool all = multi<pred, and_t, str>;
+
+using hello_world = tstring<'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l',
+                            'd', ' ', '!', '!'>;
 namespace scope {
 using split_result = delimitWhen<is_space, hello_world>;
 using hello = split_result::A;
+static_assert(any<is_space, hello_world>, "any or is_space does not work");
 }; // namespace scope
 
 using m = splitWhen<split_types, hello_world>;
 
-using helloworld = tstring<'h', 'e', 'l', 'l', ' ', ' ', 'o', ' ', 'l', 'd'>;
+using helloworld = tstring<'h', 'e', 'l', 'l', 'o', 'l', 'd'>;
+static_assert(!any<is_space, helloworld>, "any or is_space does not work");
 using g = tokenize<helloworld>;
 
 int main() {
