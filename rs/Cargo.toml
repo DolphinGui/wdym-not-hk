@@ -1,0 +1,9 @@
+[package]
+name = "hhcib"
+version = "0.1.0"
+edition = "2021"
+description = "How hard can a tree in rust be?"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
