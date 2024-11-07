@@ -34,41 +34,58 @@ template <char... cs> std::string format_as(tstring<cs...> tstr) {
 
 template <typename T> using returns = std::type_identity<T>;
 
-template <typename, typename> struct append;
+template <typename, typename> struct cat_impl;
+template <typename T1, typename T2> using cat = cat_impl<T1, T2>::type;
+
 template <char... as, char... bs>
-struct append<tstring<as...>, tstring<bs...>> : returns<tstring<as..., bs...>> {
+struct cat_impl<tstring<as...>, tstring<bs...>> : returns<tstring<as..., bs...>> {
 };
 
-template <bool, typename True, typename False> struct if_else;
+template <bool, typename True, typename False> struct if_else_impl;
+template <bool b, typename True, typename False>
+using if_else = if_else_impl<b, True, False>::type;
 
 template <typename True, typename False>
-struct if_else<true, True, False> : returns<True> {};
+struct if_else_impl<true, True, False> : returns<True> {};
 template <typename True, typename False>
-struct if_else<false, True, False> : returns<False> {};
+struct if_else_impl<false, True, False> : returns<False> {};
 
 template <typename a, typename b> struct pair {
   using A = a;
   using B = b;
 };
 
-template <template <char> typename, typename, typename> struct delimitWhen_;
+template <typename... Ts> struct tuple {};
+
+template <size_t index, typename> struct get_t;
+
+template <typename T, typename... Ts>
+struct get_t<0, tuple<T, Ts...>> : returns<T> {};
+
+template <size_t index, typename T, typename... Ts>
+struct get_t<index, tuple<T, Ts...>>
+    : returns<typename get_t<index - 1, tuple<Ts...>>::type> {};
+
+template <size_t index, typename... Ts> using get = get_t<index, Ts...>::type;
+
+template <template <char> typename, typename, typename> struct delimiWhen__;
+template <template <char> typename pred, typename in, typename out>
+using delimitWhen_ = delimiWhen__<pred, in, out>::type;
 
 template <template <char> typename p, char... cs>
-struct delimitWhen_<p, tstring<>, tstring<cs...>>
+struct delimiWhen__<p, tstring<>, tstring<cs...>>
     : returns<pair<tstring<cs...>, tstring<>>> {};
 
 template <template <char> typename pred, char... in, char... out>
-struct delimitWhen_<pred, tstring<in...>, tstring<out...>>
-    : returns<typename if_else<
+struct delimiWhen__<pred, tstring<in...>, tstring<out...>>
+    : returns<if_else<
           pred<head<in...>::value>::value,
           pair<tstring<out...>, typename tstring<in...>::tail>,
-          typename delimitWhen_<
-              pred, typename tstring<in...>::tail,
-              typename append<tstring<out...>, tstring<head<in...>::value>>::
-                  type>::type>::type> {};
+          delimitWhen_<pred, typename tstring<in...>::tail,
+                       cat<tstring<out...>, tstring<head<in...>::value>>>>> {};
 
 template <template <char> typename pred, typename in>
-using delimitWhen = typename delimitWhen_<pred, in, tstring<>>::type;
+using delimitWhen = delimitWhen_<pred, in, tstring<>>;
 
 struct Whitespace {};
 struct Numeric {};
@@ -111,21 +128,23 @@ template <char c>
 struct classify<c> : returns<Operator> {};
 template <char> struct classify : returns<Other> {};
 
-template <template <char, char> typename, typename, typename> struct splitWhen_;
+template <template <char, char> typename, typename, typename>
+struct splitWhen__;
+template <template <char, char> typename pred, typename in, typename out>
+using splitWhen_ = splitWhen__<pred, in, out>;
 
 template <template <char, char> typename p, char... cs>
-struct splitWhen_<p, tstring<>, tstring<cs...>>
+struct splitWhen__<p, tstring<>, tstring<cs...>>
     : returns<pair<tstring<cs...>, tstring<>>> {};
 
 template <template <char, char> typename pred, char... in, char... out>
-struct splitWhen_<pred, tstring<in...>, tstring<out...>>
-    : returns<typename if_else<
+struct splitWhen__<pred, tstring<in...>, tstring<out...>>
+    : returns<if_else<
           pred<head<in...>::value, head<out...>::value>::value,
           pair<tstring<out...>, tstring<in...>>,
           typename splitWhen_<
               pred, typename tstring<in...>::tail,
-              typename append<tstring<out...>, tstring<head<in...>::value>>::
-                  type>::type>::type> {};
+              cat<tstring<out...>, tstring<head<in...>::value>>>::type>> {};
 
 template <template <char, char> typename pred, typename in>
 using splitWhen =
@@ -140,12 +159,20 @@ template <char a, char b> struct split_types {
       !std::is_same_v<typename classify<a>::type, typename classify<b>::type>;
 };
 
+// template<typename str>
+// struct tokenize_ : returns<> {};
+
 using hello_world =
     tstring<'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'>;
-using n = delimitWhen<is_space, hello_world>;
-using a = n::A;
+namespace scope {
+using split_result = delimitWhen<is_space, hello_world>;
+using hello = split_result::A;
+}; // namespace scope
 
 using m = splitWhen<split_types, hello_world>;
+
+using helloworld = tstring<'h', 'e', 'l', 'l', 'o', 'w', 'o', 'r', 'l', 'd'>;
+using g = splitWhen<split_types, helloworld>;
 
 int main() {
   auto tstr = hello_world{};
