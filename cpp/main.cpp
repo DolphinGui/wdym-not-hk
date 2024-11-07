@@ -38,9 +38,8 @@ template <typename, typename> struct cat_impl;
 template <typename T1, typename T2> using cat = cat_impl<T1, T2>::type;
 
 template <char... as, char... bs>
-struct cat_impl<tstring<as...>, tstring<bs...>> : returns<tstring<as..., bs...>> {
-};
-
+struct cat_impl<tstring<as...>, tstring<bs...>>
+    : returns<tstring<as..., bs...>> {};
 template <bool, typename True, typename False> struct if_else_impl;
 template <bool b, typename True, typename False>
 using if_else = if_else_impl<b, True, False>::type;
@@ -50,12 +49,18 @@ struct if_else_impl<true, True, False> : returns<True> {};
 template <typename True, typename False>
 struct if_else_impl<false, True, False> : returns<False> {};
 
-template <typename a, typename b> struct pair {
+template <typename... Ts> struct tuple;
+
+template <typename a, typename b> struct tuple<a, b> {
   using A = a;
   using B = b;
 };
+template <typename a, typename b> using pair = tuple<a, b>;
 
 template <typename... Ts> struct tuple {};
+
+template <typename... T1, typename... T2>
+struct cat_impl<tuple<T1...>, tuple<T2...>> : returns<tuple<T1..., T2...>> {};
 
 template <size_t index, typename> struct get_t;
 
@@ -93,7 +98,8 @@ struct Paren {};
 struct Operator {};
 struct Other {};
 
-template <char> struct classify;
+template <char> struct classify_;
+template <char c> using classify = classify_<c>::type;
 
 constexpr bool isWhitespace(char c) {
   return c == ' ' or c == '\t' or c == '\n';
@@ -116,17 +122,17 @@ constexpr bool isOp(char c) {
 
 template <char c>
   requires(isWhitespace(c))
-struct classify<c> : returns<Whitespace> {};
+struct classify_<c> : returns<Whitespace> {};
 template <char c>
   requires(isNumeric(c))
-struct classify<c> : returns<Numeric> {};
+struct classify_<c> : returns<Numeric> {};
 template <char c>
   requires(isParen(c))
-struct classify<c> : returns<Paren> {};
+struct classify_<c> : returns<Paren> {};
 template <char c>
   requires(isOp(c))
-struct classify<c> : returns<Operator> {};
-template <char> struct classify : returns<Other> {};
+struct classify_<c> : returns<Operator> {};
+template <char> struct classify_ : returns<Other> {};
 
 template <template <char, char> typename, typename, typename>
 struct splitWhen__;
@@ -155,12 +161,18 @@ template <char c> struct is_space {
 };
 
 template <char a, char b> struct split_types {
-  constexpr static bool value =
-      !std::is_same_v<typename classify<a>::type, typename classify<b>::type>;
+  constexpr static bool value = !std::is_same_v<classify<a>, classify<b>>;
 };
 
-// template<typename str>
-// struct tokenize_ : returns<> {};
+template <typename str> struct tokenize_;
+template <typename str> using tokenize = tokenize_<str>::type;
+
+template <> struct tokenize_<tstring<>> : returns<tuple<tstring<>>> {};
+
+template <typename str>
+struct tokenize_
+    : returns<cat<tuple<typename splitWhen<split_types, str>::A>,
+                  tokenize<typename splitWhen<split_types, str>::B>>> {};
 
 using hello_world =
     tstring<'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'>;
@@ -171,8 +183,8 @@ using hello = split_result::A;
 
 using m = splitWhen<split_types, hello_world>;
 
-using helloworld = tstring<'h', 'e', 'l', 'l', 'o', 'w', 'o', 'r', 'l', 'd'>;
-using g = splitWhen<split_types, helloworld>;
+using helloworld = tstring<'h', 'e', 'l', 'l', ' ', ' ', 'o', ' ', 'l', 'd'>;
+using g = tokenize<helloworld>;
 
 int main() {
   auto tstr = hello_world{};
