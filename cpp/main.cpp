@@ -71,6 +71,47 @@ template <auto pred, typename in>
 struct delimitWhen : returns<typename delimitWhen_<pred, in, tstring<>>::type> {
 };
 
+struct Whitespace {};
+struct Numeric {};
+struct Paren {};
+struct Operator {};
+struct Other {};
+
+template <char c> struct classify;
+
+constexpr bool isWhitespace(char c) {
+  return c == ' ' or c == '\t' or c == '\n';
+}
+constexpr bool isNumeric(char c) {
+  for (char digit : "0123456789") {
+    if (c == digit)
+      return true;
+  }
+  return false;
+}
+constexpr bool isParen(char c) { return c == '(' or c == ')'; }
+constexpr bool isOp(char c) {
+  for (char op : "-+/=*^") {
+    if (c == op)
+      return true;
+  }
+  return false;
+}
+
+template <char c>
+  requires(isWhitespace(c))
+struct classify<c> : returns<Whitespace> {};
+template <char c>
+  requires(isNumeric(c))
+struct classify<c> : returns<Numeric> {};
+template <char c>
+  requires(isParen(c))
+struct classify<c> : returns<Paren> {};
+template <char c>
+  requires(isOp(c))
+struct classify<c> : returns<Operator> {};
+template <char c> struct classify : returns<Other> {};
+
 using hello_world =
     tstring<'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'>;
 using n = delimitWhen<[](char c) { return c == ' '; }, hello_world>::type;
