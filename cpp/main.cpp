@@ -82,16 +82,16 @@ template <char c> struct classify;
 constexpr bool isWhitespace(char c) {
   return c == ' ' or c == '\t' or c == '\n';
 }
-constexpr bool isNumeric(char c) {
-  for (char digit : "0123456789") {
+constexpr bool isNumeric(char const c) {
+  for (char const digit : "0123456789") {
     if (c == digit)
       return true;
   }
   return false;
 }
-constexpr bool isParen(char c) { return c == '(' or c == ')'; }
+constexpr bool isParen(char const c) { return c == '(' or c == ')'; }
 constexpr bool isOp(char c) {
-  for (char op : "-+/=*^") {
+  for (char const op : "-+/=*^") {
     if (c == op)
       return true;
   }
