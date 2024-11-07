@@ -108,7 +108,7 @@ template <template <typename, typename> typename, typename, typename>
 struct splitWhen__;
 template <template <typename, typename> typename pred, typename in,
           typename out>
-using splitWhen_ = splitWhen__<pred, in, out>;
+using splitWhen_ = typename splitWhen__<pred, in, out>::type;
 
 template <template <typename, typename> typename p, typename... cs>
 struct splitWhen__<p, tuple<>, tuple<cs...>>
@@ -122,9 +122,8 @@ struct splitWhen__<pred, tuple<in...>, tuple<out...>>
                       splitWhen_<pred, tail<tuple<in...>>,
                                  cat<tuple<out...>, first<tuple<in...>>>>>> {};
 
-template <template <typename, typename> typename pred, typename... in>
-using splitWhen =
-    typename splitWhen_<pred, tail<in...>, tuple<head<in...>>>::type;
+template <template <typename, typename> typename pred, typename in>
+using splitWhen = splitWhen_<pred, tail<in>, first<in>>;
 
 template <typename v> struct is_space {
   constexpr static bool value =
@@ -195,9 +194,9 @@ static_assert(any<is_space, hello_world>, "any or is_space does not work");
 
 using m = splitWhen<split_types, hello_world>;
 
-// using helloworld = tstring<'h', 'e', 'l', 'l', 'o', 'l', 'd'>;
-// static_assert(!any<is_space, helloworld>, "any or is_space does not work");
-// using g = tokenize<helloworld>;
+using helloworld = tstring<'h', 'e', 'l', '1', 'o', 'l', 'd'>;
+static_assert(!any<is_space, helloworld>, "any or is_space does not work");
+using g = tokenize<helloworld>;
 
 int main() {
   auto tstr = hello_world{};

@@ -24,13 +24,16 @@ template <typename... tuple> using head = head_t<tuple...>::type;
 template <typename t, typename... ts>
 struct head_t<tuple<t, ts...>> : returns<t> {};
 
+template <typename t, typename... ts> struct head_t<t, ts...> : returns<t> {};
+
 template <typename... tuple> struct first_t;
 template <typename... tuple> using first = first_t<tuple...>::type;
 
 template <typename t, typename... ts>
 struct first_t<tuple<t, ts...>> : returns<tuple<t>> {};
 
-template <typename t, typename... ts> struct head_t<t, ts...> : returns<t> {};
+template <typename t, typename... ts> struct first_t<t, ts...> : returns<tuple<t>> {};
+
 
 template <typename tuple> struct tail_t;
 template <typename... tuple> using tail = tail_t<tuple...>::type;
