@@ -1,28 +1,31 @@
 #include "core.hpp"
-#include <algorithm>
 #include <fmt/format.h>
-#include <string>
-#include <tuple>
 #include <type_traits>
 
 template <char... cs> using tstring = tuple<char_t<cs>...>;
 
-// template <char c> void serialize_(std::string &str, tstring<c>) {
-//   str.push_back(c);
-// }
+template <char c> void serialize_(std::string &str, char_t<c>) {
+  str.push_back(c);
+}
 
-// template <char c, char... cs>
-// void serialize_(std::string &str, tstring<c, cs...>) {
-//   str.push_back(c);
-//   serialize_(str, tstring<cs...>{});
-// }
+template <template <typename... Ts> typename tuple, typename t>
+void serialize_(std::string &str, tuple<t>) {
+  serialize_(str, t{});
+}
 
-// template <char... cs> std::string format_as(tstring<cs...> tstr) {
-//   std::string result;
-//   result.reserve(sizeof...(cs));
-//   serialize_(result, tstr);
-//   return result;
-// }
+template <template <typename... Ts> typename tuple, typename t, typename... ts>
+void serialize_(std::string &str, tuple<t, ts...>) {
+  serialize_(str, t{});
+  serialize_(str, tuple<ts...>{});
+}
+
+template <template <typename... Ts> typename tuple, typename... ts>
+std::string format_as(tuple<ts...> tup){
+  std::string result;
+  result.reserve(sizeof...(ts));
+  serialize_(result, tup);
+  return result;
+}
 
 template <typename, typename> struct cat_impl;
 template <typename T1, typename T2> using cat = cat_impl<T1, T2>::type;
@@ -201,5 +204,5 @@ using g = tokenize<helloworld>;
 int main() {
   auto tstr = hello_world{};
 
-  // fmt::print("{}\n", tstr);
+  fmt::print("{}\n", tstr);
 }
