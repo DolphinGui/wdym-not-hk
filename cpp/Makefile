@@ -1,6 +1,6 @@
 .PHONEY: clean test
 
-CFLAGS:=-Wall -O2
+CFLAGS:=-Wall -O2 -I.
 CXXFLAGS:=-std=c++26
 LDFLAGS:=-lfmt
 

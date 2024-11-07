@@ -1,63 +1,31 @@
+#include "core.hpp"
 #include <algorithm>
 #include <fmt/format.h>
 #include <string>
 #include <tuple>
 #include <type_traits>
 
-template <char c, char... cs> struct head {
-  constexpr static char value = c;
-};
+template <char... cs> using tstring = tuple<char_t<cs>...>;
 
-template <char... cs> struct tstring;
-template <> struct tstring<> {};
-template <char c, char... cs> struct tstring<c, cs...> {
-  using head = tstring<c>;
-  using tail = tstring<cs...>;
-};
+// template <char c> void serialize_(std::string &str, tstring<c>) {
+//   str.push_back(c);
+// }
 
-template <char c> void serialize_(std::string &str, tstring<c>) {
-  str.push_back(c);
-}
+// template <char c, char... cs>
+// void serialize_(std::string &str, tstring<c, cs...>) {
+//   str.push_back(c);
+//   serialize_(str, tstring<cs...>{});
+// }
 
-template <char c, char... cs>
-void serialize_(std::string &str, tstring<c, cs...>) {
-  str.push_back(c);
-  serialize_(str, tstring<cs...>{});
-}
-
-template <char... cs> std::string format_as(tstring<cs...> tstr) {
-  std::string result;
-  result.reserve(sizeof...(cs));
-  serialize_(result, tstr);
-  return result;
-}
-
-template <typename T> using returns = std::type_identity<T>;
+// template <char... cs> std::string format_as(tstring<cs...> tstr) {
+//   std::string result;
+//   result.reserve(sizeof...(cs));
+//   serialize_(result, tstr);
+//   return result;
+// }
 
 template <typename, typename> struct cat_impl;
 template <typename T1, typename T2> using cat = cat_impl<T1, T2>::type;
-
-template <char... as, char... bs>
-struct cat_impl<tstring<as...>, tstring<bs...>>
-    : returns<tstring<as..., bs...>> {};
-template <bool, typename True, typename False> struct if_else_impl;
-template <bool b, typename True, typename False>
-using if_else = if_else_impl<b, True, False>::type;
-
-template <typename True, typename False>
-struct if_else_impl<true, True, False> : returns<True> {};
-template <typename True, typename False>
-struct if_else_impl<false, True, False> : returns<False> {};
-
-template <typename... Ts> struct tuple;
-
-template <typename a, typename b> struct tuple<a, b> {
-  using A = a;
-  using B = b;
-};
-template <typename a, typename b> using pair = tuple<a, b>;
-
-template <typename... Ts> struct tuple {};
 
 template <typename... T1, typename... T2>
 struct cat_impl<tuple<T1...>, tuple<T2...>> : returns<tuple<T1..., T2...>> {};
@@ -73,23 +41,23 @@ struct get_t<index, tuple<T, Ts...>>
 
 template <size_t index, typename... Ts> using get = get_t<index, Ts...>::type;
 
-template <template <char> typename, typename, typename> struct delimiWhen__;
-template <template <char> typename pred, typename in, typename out>
+template <template <typename> typename, typename, typename> struct delimiWhen__;
+template <template <typename> typename pred, typename in, typename out>
 using delimitWhen_ = delimiWhen__<pred, in, out>::type;
 
-template <template <char> typename p, char... cs>
-struct delimiWhen__<p, tstring<>, tstring<cs...>>
-    : returns<pair<tstring<cs...>, tstring<>>> {};
+template <template <typename> typename p, typename... cs>
+struct delimiWhen__<p, tuple<>, tuple<cs...>>
+    : returns<pair<tuple<cs...>, tuple<>>> {};
 
-template <template <char> typename pred, char... in, char... out>
-struct delimiWhen__<pred, tstring<in...>, tstring<out...>>
+template <template <typename> typename pred, typename... in, typename... out>
+struct delimiWhen__<pred, tuple<in...>, tuple<out...>>
     : returns<if_else<
-          pred<head<in...>::value>::value,
-          pair<tstring<out...>, typename tstring<in...>::tail>,
-          delimitWhen_<pred, typename tstring<in...>::tail,
-                       cat<tstring<out...>, tstring<head<in...>::value>>>>> {};
+          pred<head<tuple<in...>>>::value,
+          pair<tuple<out...>, tail<tuple<in...>>>,
+          delimitWhen_<pred, tail<tuple<in...>>,
+                       cat<tuple<out...>, tuple<head<tuple<in...>>>>>>> {};
 
-template <template <char> typename pred, typename in>
+template <template <typename> typename pred, typename in>
 using delimitWhen = delimitWhen_<pred, in, tstring<>>;
 
 struct Whitespace {};
@@ -98,21 +66,23 @@ struct Paren {};
 struct Operator {};
 struct Other {};
 
-template <char> struct classify_;
-template <char c> using classify = classify_<c>::type;
+template <typename> struct classify_;
+template <typename c> using classify = classify_<c>::type;
 
-constexpr bool isWhitespace(char c) {
+template <char c> constexpr bool isWhitespace(char_t<c>) {
   return c == ' ' or c == '\t' or c == '\n';
 }
-constexpr bool isNumeric(char const c) {
+template <char c> constexpr bool isNumeric(char_t<c>) {
   for (char const digit : "0123456789") {
     if (c == digit)
       return true;
   }
   return false;
 }
-constexpr bool isParen(char const c) { return c == '(' or c == ')'; }
-constexpr bool isOp(char c) {
+template <char c> constexpr bool isParen(char_t<c>) {
+  return c == '(' or c == ')';
+}
+template <char c> constexpr bool isOp(char_t<c>) {
   for (char const op : "-+/=*^") {
     if (c == op)
       return true;
@@ -120,47 +90,48 @@ constexpr bool isOp(char c) {
   return false;
 }
 
-template <char c>
-  requires(isWhitespace(c))
+template <typename c>
+  requires(isWhitespace(c{}))
 struct classify_<c> : returns<Whitespace> {};
-template <char c>
-  requires(isNumeric(c))
+template <typename c>
+  requires(isNumeric(c{}))
 struct classify_<c> : returns<Numeric> {};
-template <char c>
-  requires(isParen(c))
+template <typename c>
+  requires(isParen(c{}))
 struct classify_<c> : returns<Paren> {};
-template <char c>
-  requires(isOp(c))
+template <typename c>
+  requires(isOp(c{}))
 struct classify_<c> : returns<Operator> {};
-template <char> struct classify_ : returns<Other> {};
+template <typename> struct classify_ : returns<Other> {};
 
-template <template <char, char> typename, typename, typename>
+template <template <typename, typename> typename, typename, typename>
 struct splitWhen__;
-template <template <char, char> typename pred, typename in, typename out>
+template <template <typename, typename> typename pred, typename in,
+          typename out>
 using splitWhen_ = splitWhen__<pred, in, out>;
 
-template <template <char, char> typename p, char... cs>
-struct splitWhen__<p, tstring<>, tstring<cs...>>
-    : returns<pair<tstring<cs...>, tstring<>>> {};
+template <template <typename, typename> typename p, typename... cs>
+struct splitWhen__<p, tuple<>, tuple<cs...>>
+    : returns<pair<tuple<cs...>, tuple<>>> {};
 
-template <template <char, char> typename pred, char... in, char... out>
-struct splitWhen__<pred, tstring<in...>, tstring<out...>>
-    : returns<if_else<
-          pred<head<in...>::value, head<out...>::value>::value,
-          pair<tstring<out...>, tstring<in...>>,
-          typename splitWhen_<
-              pred, typename tstring<in...>::tail,
-              cat<tstring<out...>, tstring<head<in...>::value>>>::type>> {};
+template <template <typename, typename> typename pred, typename... in,
+          typename... out>
+struct splitWhen__<pred, tuple<in...>, tuple<out...>>
+    : returns<if_else<pred<head<in...>, head<out...>>::value,
+                      pair<tuple<out...>, tuple<in...>>,
+                      splitWhen_<pred, tail<tuple<in...>>,
+                                 cat<tuple<out...>, first<tuple<in...>>>>>> {};
 
-template <template <char, char> typename pred, typename in>
+template <template <typename, typename> typename pred, typename... in>
 using splitWhen =
-    typename splitWhen_<pred, typename in::tail, typename in::head>::type;
+    typename splitWhen_<pred, tail<in...>, tuple<head<in...>>>::type;
 
-template <char c> struct is_space {
-  constexpr static bool value = c == ' ' or c == '\t' or c == '\n';
+template <typename v> struct is_space {
+  constexpr static bool value =
+      v::value == ' ' or v::value == '\t' or v::value == '\n';
 };
 
-template <char a, char b> struct split_types {
+template <typename a, typename b> struct split_types {
   constexpr static bool value = !std::is_same_v<classify<a>, classify<b>>;
 };
 
@@ -187,40 +158,31 @@ struct filter__
           pred<typename in::head>::value, filter_<pred, typename in::tail, out>,
           filter_<pred, typename in::tail, cat<typename in::head, out>>>> {};
 
-template <bool a, bool b> struct or_t {
-  constexpr static bool value = a or b;
-};
-template <bool a, bool b> constexpr static bool or_v = or_t<a, b>::value;
-template <bool a, bool b> struct and_t {
-  constexpr static bool value = a and b;
-};
-template <bool a, bool b> constexpr static bool and_v = and_t<a, b>::value;
-
 template <template <typename> typename pred, typename in>
 using filter = filter_<pred, in, tstring<>>;
 
-template <template <char> typename pred, template <bool, bool> typename comb,
-          typename str>
+template <template <typename> typename pred,
+          template <bool, bool> typename comb, typename str>
 struct multi_;
-template <template <char> typename pred, template <bool, bool> typename comb,
-          typename str>
+template <template <typename> typename pred,
+          template <bool, bool> typename comb, typename str>
 constexpr static bool multi = multi_<pred, comb, str>::value;
 
-template <template <char> typename pred, template <bool, bool> typename comb,
-          char a, char b>
-struct multi_<pred, comb, tstring<a, b>> {
+template <template <typename> typename pred,
+          template <bool, bool> typename comb, typename a, typename b>
+struct multi_<pred, comb, tuple<a, b>> {
   constexpr static bool value = comb<pred<a>::value, pred<b>::value>::value;
 };
 
-template <template <char> typename pred, template <bool, bool> typename comb,
-          char c, char... cs>
-struct multi_<pred, comb, tstring<c, cs...>> {
+template <template <typename> typename pred,
+          template <bool, bool> typename comb, typename c, typename... cs>
+struct multi_<pred, comb, tuple<c, cs...>> {
   constexpr static bool value =
-      comb<pred<c>::value, multi<pred, comb, tstring<cs...>>>::value;
+      comb<pred<c>::value, multi<pred, comb, tuple<cs...>>>::value;
 };
-template <template <char> typename pred, typename str>
+template <template <typename> typename pred, typename str>
 constexpr static bool any = multi<pred, or_t, str>;
-template <template <char> typename pred, typename str>
+template <template <typename> typename pred, typename str>
 constexpr static bool all = multi<pred, and_t, str>;
 
 using hello_world = tstring<'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l',
@@ -233,12 +195,12 @@ static_assert(any<is_space, hello_world>, "any or is_space does not work");
 
 using m = splitWhen<split_types, hello_world>;
 
-using helloworld = tstring<'h', 'e', 'l', 'l', 'o', 'l', 'd'>;
-static_assert(!any<is_space, helloworld>, "any or is_space does not work");
-using g = tokenize<helloworld>;
+// using helloworld = tstring<'h', 'e', 'l', 'l', 'o', 'l', 'd'>;
+// static_assert(!any<is_space, helloworld>, "any or is_space does not work");
+// using g = tokenize<helloworld>;
 
 int main() {
   auto tstr = hello_world{};
 
-  fmt::print("{}\n", tstr);
+  // fmt::print("{}\n", tstr);
 }
