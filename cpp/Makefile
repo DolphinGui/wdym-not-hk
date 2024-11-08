@@ -1,8 +1,11 @@
 .PHONEY: clean test
 
-CFLAGS:=-Wall -O2 -I.
+CFLAGS:=-Wall -O2
 CXXFLAGS:=-std=c++26
 LDFLAGS:=-lfmt
+OBJECTS = main.o       # object files forming executable
+DEPENDS = ${OBJECTS:.o=.d}    # substitutes ".o" with ".d"
+CPPFLAGS:= -I. -MMD
 
 test: main
 	./main
@@ -10,6 +13,7 @@ test: main
 clean:
 	rm *.o main
 
-main: main.o
+main: ${OBJECTS}
 	g++ -o $@ $^ ${LDFLAGS} ${CXXFLAGS} ${CFLAGS}
 
+-include ${DEPENDS}

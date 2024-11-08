@@ -32,8 +32,8 @@ template <typename... tuple> using first = first_t<tuple...>::type;
 template <typename t, typename... ts>
 struct first_t<tuple<t, ts...>> : returns<tuple<t>> {};
 
-template <typename t, typename... ts> struct first_t<t, ts...> : returns<tuple<t>> {};
-
+template <typename t, typename... ts>
+struct first_t<t, ts...> : returns<tuple<t>> {};
 
 template <typename tuple> struct tail_t;
 template <typename... tuple> using tail = tail_t<tuple...>::type;
@@ -79,3 +79,17 @@ struct get_t<index, tuple<T, Ts...>>
     : returns<typename get_t<index - 1, tuple<Ts...>>::type> {};
 
 template <size_t index, typename... Ts> using get = get_t<index, Ts...>::type;
+
+template <typename... tuple> struct drop_last_t;
+template <typename... tuple> using drop_last = drop_last_t<tuple...>::type;
+
+template <typename t, typename... ts>
+struct drop_last_t<tuple<t, ts...>>
+    : returns<cat<tuple<t>, drop_last<tuple<ts...>>>> {};
+template <typename t> struct drop_last_t<tuple<t>> : returns<tuple<>> {};
+
+template <typename... t> struct last_t;
+template <typename tuple> using last = last_t<tuple>::type;
+
+template <typename... t>
+struct last_t<tuple<t...>> : returns<get<sizeof...(t) - 1, tuple<t...>>> {};

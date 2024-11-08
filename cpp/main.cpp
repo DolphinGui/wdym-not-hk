@@ -1,33 +1,11 @@
-#include "core.hpp"
-#include "string.hpp"
-
 #include <fmt/format.h>
 #include <type_traits>
 
-template <char... cs> using tstring = tuple<char_t<cs>...>;
+#include "core.hpp"
+#include "string.hpp"
+#include "format.hpp"
 
-template <char c> void serialize_(std::string &str, char_t<c>) {
-  str.push_back(c);
-}
-
-template <template <typename... Ts> typename tuple, typename t>
-void serialize_(std::string &str, tuple<t>) {
-  serialize_(str, t{});
-}
-
-template <template <typename... Ts> typename tuple, typename t, typename... ts>
-void serialize_(std::string &str, tuple<t, ts...>) {
-  serialize_(str, t{});
-  serialize_(str, tuple<ts...>{});
-}
-
-template <template <typename... Ts> typename tuple, typename... ts>
-std::string format_as(tuple<ts...> tup) {
-  std::string result;
-  result.reserve(sizeof...(ts));
-  serialize_(result, tup);
-  return result;
-}
+template <char... cs> using tstr = tuple<char_t<cs>...>;
 
 template <template <typename> typename, typename, typename> struct delimiWhen__;
 template <template <typename> typename pred, typename in, typename out>
@@ -46,7 +24,7 @@ struct delimiWhen__<pred, tuple<in...>, tuple<out...>>
                        cat<tuple<out...>, tuple<head<tuple<in...>>>>>>> {};
 
 template <template <typename> typename pred, typename in>
-using delimitWhen = delimitWhen_<pred, in, tstring<>>;
+using delimitWhen = delimitWhen_<pred, in, tstr<>>;
 
 struct Whitespace {};
 struct Numeric {};
@@ -125,7 +103,7 @@ template <typename a, typename b> struct split_types {
 template <typename str> struct tokenize_;
 template <typename str> using tokenize = tokenize_<str>::type;
 
-template <> struct tokenize_<tstring<>> : returns<tuple<tstring<>>> {};
+template <> struct tokenize_<tstr<>> : returns<tuple<tstr<>>> {};
 
 template <typename str>
 struct tokenize_
@@ -138,7 +116,7 @@ template <template <typename> typename pred, typename in, typename out>
 using filter_ = filter__<pred, in, out>::type;
 
 template <template <typename> typename pred, typename out>
-struct filter__<pred, tstring<>, out> : returns<out> {};
+struct filter__<pred, tstr<>, out> : returns<out> {};
 template <template <typename> typename pred, typename in, typename out>
 struct filter__
     : returns<if_else<
@@ -146,7 +124,7 @@ struct filter__
           filter_<pred, typename in::tail, cat<typename in::head, out>>>> {};
 
 template <template <typename> typename pred, typename in>
-using filter = filter_<pred, in, tstring<>>;
+using filter = filter_<pred, in, tstr<>>;
 
 template <template <typename> typename pred,
           template <bool, bool> typename comb, typename str>
@@ -181,12 +159,14 @@ static_assert(any<is_space, hello_world>, "any or is_space does not work");
 
 using m = splitWhen<split_types, hello_world>;
 
-using expr = tstring<'h', 'e', 'l', '1', 'o', 'l', 'd'>;
-static_assert(!any<is_space, expr>, "any or is_space does not work");
+using expr = to_tstr<"2 + 3 - 4">;
+static_assert(any<is_space, expr>, "any or is_space does not work");
 using g = tokenize<expr>;
 
 int main() {
-  auto tstr = hello_world{};
+  auto tstr = tuple<hello_world>{};
 
   fmt::print("{}\n", tstr);
+  fmt::print("double: {}\n", value_t<double, 12.321>{});
+  // fmt::print("last: {}\n", four::type{});
 }
