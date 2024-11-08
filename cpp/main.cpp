@@ -110,46 +110,6 @@ struct tokenize_
     : returns<cat<tuple<typename splitWhen<split_types, str>::A>,
                   tokenize<typename splitWhen<split_types, str>::B>>> {};
 
-template <template <typename> typename pred, typename in, typename out>
-struct filter__;
-template <template <typename> typename pred, typename in, typename out>
-using filter_ = filter__<pred, in, out>::type;
-
-template <template <typename> typename pred, typename out>
-struct filter__<pred, tstr<>, out> : returns<out> {};
-template <template <typename> typename pred, typename in, typename out>
-struct filter__
-    : returns<if_else<
-          pred<typename in::head>::value, filter_<pred, typename in::tail, out>,
-          filter_<pred, typename in::tail, cat<typename in::head, out>>>> {};
-
-template <template <typename> typename pred, typename in>
-using filter = filter_<pred, in, tstr<>>;
-
-template <template <typename> typename pred,
-          template <bool, bool> typename comb, typename str>
-struct multi_;
-template <template <typename> typename pred,
-          template <bool, bool> typename comb, typename str>
-constexpr static bool multi = multi_<pred, comb, str>::value;
-
-template <template <typename> typename pred,
-          template <bool, bool> typename comb, typename a, typename b>
-struct multi_<pred, comb, tuple<a, b>> {
-  constexpr static bool value = comb<pred<a>::value, pred<b>::value>::value;
-};
-
-template <template <typename> typename pred,
-          template <bool, bool> typename comb, typename c, typename... cs>
-struct multi_<pred, comb, tuple<c, cs...>> {
-  constexpr static bool value =
-      comb<pred<c>::value, multi<pred, comb, tuple<cs...>>>::value;
-};
-template <template <typename> typename pred, typename str>
-constexpr static bool any = multi<pred, or_t, str>;
-template <template <typename> typename pred, typename str>
-constexpr static bool all = multi<pred, and_t, str>;
-
 using hello_world = to_tstr<"Hello world!">;
 namespace scope {
 using split_result = delimitWhen<is_space, hello_world>;
@@ -162,6 +122,7 @@ static_assert(all<is_space, to_tstr<" \t  \n\t ">>, "all does not work");
 using m = splitWhen<split_types, hello_world>;
 
 using expr = to_tstr<"2 + 3 - 4">;
+using nospace = filter<is_space, expr>;
 using g = tokenize<expr>;
 
 int main() {

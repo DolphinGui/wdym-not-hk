@@ -93,3 +93,42 @@ template <typename tuple> using last = last_t<tuple>::type;
 
 template <typename... t>
 struct last_t<tuple<t...>> : returns<get<sizeof...(t) - 1, tuple<t...>>> {};
+
+template <template <typename> typename pred,
+          template <bool, bool> typename comb, typename tup>
+struct multi_;
+template <template <typename> typename pred,
+          template <bool, bool> typename comb, typename tup>
+constexpr static bool multi = multi_<pred, comb, tup>::value;
+
+template <template <typename> typename pred,
+          template <bool, bool> typename comb, typename a, typename b>
+struct multi_<pred, comb, tuple<a, b>> {
+  constexpr static bool value = comb<pred<a>::value, pred<b>::value>::value;
+};
+
+template <template <typename> typename pred,
+          template <bool, bool> typename comb, typename c, typename... cs>
+struct multi_<pred, comb, tuple<c, cs...>> {
+  constexpr static bool value =
+      comb<pred<c>::value, multi<pred, comb, tuple<cs...>>>::value;
+};
+template <template <typename> typename pred, typename tup>
+constexpr static bool any = multi<pred, or_t, tup>;
+template <template <typename> typename pred, typename tup>
+constexpr static bool all = multi<pred, and_t, tup>;
+
+template <template <typename> typename pred, typename in, typename out>
+struct filter__;
+template <template <typename> typename pred, typename in, typename out>
+using filter_ = filter__<pred, in, out>::type;
+
+template <template <typename> typename pred, typename out>
+struct filter__<pred, tuple<>, out> : returns<out> {};
+template <template <typename> typename pred, typename in, typename out>
+struct filter__
+    : returns<if_else<pred<head<in>>::value, filter_<pred, tail<in>, out>,
+                      filter_<pred, tail<in>, cat<first<in>, out>>>> {};
+
+template <template <typename> typename pred, typename in>
+using filter = filter_<pred, in, tuple<>>;
