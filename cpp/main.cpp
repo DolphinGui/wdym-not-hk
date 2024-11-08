@@ -2,8 +2,8 @@
 #include <type_traits>
 
 #include "core.hpp"
-#include "string.hpp"
 #include "format.hpp"
+#include "string.hpp"
 
 template <char... cs> using tstr = tuple<char_t<cs>...>;
 
@@ -154,13 +154,14 @@ using hello_world = to_tstr<"Hello world!">;
 namespace scope {
 using split_result = delimitWhen<is_space, hello_world>;
 using hello = split_result::A;
-static_assert(any<is_space, hello_world>, "any or is_space does not work");
+static_assert(any<is_space, to_tstr<"This string contains spaces">>,
+              "any or is_space does not work");
+static_assert(all<is_space, to_tstr<" \t  \n\t ">>, "all does not work");
 }; // namespace scope
 
 using m = splitWhen<split_types, hello_world>;
 
 using expr = to_tstr<"2 + 3 - 4">;
-static_assert(any<is_space, expr>, "any or is_space does not work");
 using g = tokenize<expr>;
 
 int main() {
@@ -168,5 +169,4 @@ int main() {
 
   fmt::print("{}\n", tstr);
   fmt::print("double: {}\n", value_t<double, 12.321>{});
-  // fmt::print("last: {}\n", four::type{});
 }

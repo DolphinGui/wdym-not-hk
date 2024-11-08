@@ -47,5 +47,3 @@ template <str_const string>
 struct make_tstr_<string, _impl_getchar>
     : returns<cat<tuple<char_t<_impl_getchar(0, string)>>,
                   to_tstr<_impl_getsubstr(string)>>> {};
-
-using c = to_tstr<"hahahaha">;
