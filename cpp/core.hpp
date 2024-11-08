@@ -1,6 +1,6 @@
 #pragma once
 
-#include <tuple>
+#include <cstddef>
 #include <type_traits>
 
 template <typename T> using returns = std::type_identity<T>;
@@ -62,3 +62,20 @@ template <bool a, bool b> struct and_t {
   constexpr static bool value = a and b;
 };
 template <bool a, bool b> constexpr static bool and_v = and_t<a, b>::value;
+
+template <typename, typename> struct cat_impl;
+template <typename T1, typename T2> using cat = cat_impl<T1, T2>::type;
+
+template <typename... T1, typename... T2>
+struct cat_impl<tuple<T1...>, tuple<T2...>> : returns<tuple<T1..., T2...>> {};
+
+template <size_t index, typename> struct get_t;
+
+template <typename T, typename... Ts>
+struct get_t<0, tuple<T, Ts...>> : returns<T> {};
+
+template <size_t index, typename T, typename... Ts>
+struct get_t<index, tuple<T, Ts...>>
+    : returns<typename get_t<index - 1, tuple<Ts...>>::type> {};
+
+template <size_t index, typename... Ts> using get = get_t<index, Ts...>::type;

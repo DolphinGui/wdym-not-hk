@@ -1,4 +1,6 @@
 #include "core.hpp"
+#include "string.hpp"
+
 #include <fmt/format.h>
 #include <type_traits>
 
@@ -20,29 +22,12 @@ void serialize_(std::string &str, tuple<t, ts...>) {
 }
 
 template <template <typename... Ts> typename tuple, typename... ts>
-std::string format_as(tuple<ts...> tup){
+std::string format_as(tuple<ts...> tup) {
   std::string result;
   result.reserve(sizeof...(ts));
   serialize_(result, tup);
   return result;
 }
-
-template <typename, typename> struct cat_impl;
-template <typename T1, typename T2> using cat = cat_impl<T1, T2>::type;
-
-template <typename... T1, typename... T2>
-struct cat_impl<tuple<T1...>, tuple<T2...>> : returns<tuple<T1..., T2...>> {};
-
-template <size_t index, typename> struct get_t;
-
-template <typename T, typename... Ts>
-struct get_t<0, tuple<T, Ts...>> : returns<T> {};
-
-template <size_t index, typename T, typename... Ts>
-struct get_t<index, tuple<T, Ts...>>
-    : returns<typename get_t<index - 1, tuple<Ts...>>::type> {};
-
-template <size_t index, typename... Ts> using get = get_t<index, Ts...>::type;
 
 template <template <typename> typename, typename, typename> struct delimiWhen__;
 template <template <typename> typename pred, typename in, typename out>
@@ -187,8 +172,7 @@ constexpr static bool any = multi<pred, or_t, str>;
 template <template <typename> typename pred, typename str>
 constexpr static bool all = multi<pred, and_t, str>;
 
-using hello_world = tstring<'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l',
-                            'd', ' ', '!', '!'>;
+using hello_world = to_tstr<"Hello world!">;
 namespace scope {
 using split_result = delimitWhen<is_space, hello_world>;
 using hello = split_result::A;
@@ -197,9 +181,9 @@ static_assert(any<is_space, hello_world>, "any or is_space does not work");
 
 using m = splitWhen<split_types, hello_world>;
 
-using helloworld = tstring<'h', 'e', 'l', '1', 'o', 'l', 'd'>;
-static_assert(!any<is_space, helloworld>, "any or is_space does not work");
-using g = tokenize<helloworld>;
+using expr = tstring<'h', 'e', 'l', '1', 'o', 'l', 'd'>;
+static_assert(!any<is_space, expr>, "any or is_space does not work");
+using g = tokenize<expr>;
 
 int main() {
   auto tstr = hello_world{};
