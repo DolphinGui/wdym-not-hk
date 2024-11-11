@@ -22,12 +22,12 @@ template <typename num> struct Number : returns<num> {};
 template <typename operation> struct Op : returns<operation> {};
 template <typename expr> struct Expression : returns<expr> {};
 
-template <typename chars> struct parse_num_t;
-template <typename chars> using parse_num = parse_num_t<chars>::type;
+template <typename chars> struct parse_t;
+template <typename chars> using parse = parse_t<chars>::type;
 
 template <char c>
   requires(isNumeric(char_t<c>{}))
-struct parse_num_t<tuple<char_t<c>>>
+struct parse_t<tuple<char_t<c>>>
     : returns<int_t<
           c == '0'
               ? 0
@@ -50,21 +50,13 @@ struct parse_num_t<tuple<char_t<c>>>
                                                                       : 9))))))))>> {
 };
 
-template <intmax_t base, size_t exponent> struct power_t;
-template <intmax_t base, size_t exponent>
-using power = power_t<base, exponent>::type;
-template <intmax_t base> struct power_t<base, 0> : returns<int_t<1>> {};
-template <intmax_t base> struct power_t<base, 1> : returns<int_t<base>> {};
-template <intmax_t base, size_t exponent>
-struct power_t : returns<int_t<base * power<base, exponent - 1>::value>> {};
-
 template <char front, char... chars>
-struct parse_num_t<tuple<char_t<front>, char_t<chars>...>>
-    : returns<int_t<parse_num<tuple<char_t<front>>>::value *
+struct parse_t<tuple<char_t<front>, char_t<chars>...>>
+    : returns<int_t<parse<tuple<char_t<front>>>::value *
                         power<10, sizeof...(chars)>::value +
-                    parse_num<tuple<char_t<chars>...>>::value>> {};
+                    parse<tuple<char_t<chars>...>>::value>> {};
 
-using number = parse_num<to_tstr<"12">>;
+using number = parse<to_tstr<"12">>;
 static_assert(number::value == 12, "number parsing has failed");
 
 template <typename str> struct parse_expr_t;

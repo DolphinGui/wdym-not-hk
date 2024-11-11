@@ -11,7 +11,16 @@ template <typename T, T v> struct value_t {
 };
 
 template <char c> using char_t = value_t<char, c>;
+
 template <intmax_t i> using int_t = value_t<intmax_t, i>;
+
+template <intmax_t base, size_t exponent> struct power_t;
+template <intmax_t base, size_t exponent>
+using power = power_t<base, exponent>::type;
+template <intmax_t base> struct power_t<base, 0> : returns<int_t<1>> {};
+template <intmax_t base> struct power_t<base, 1> : returns<int_t<base>> {};
+template <intmax_t base, size_t exponent>
+struct power_t : returns<int_t<base * power<base, exponent - 1>::value>> {};
 
 template <typename... Ts> struct tuple;
 
