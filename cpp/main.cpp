@@ -78,11 +78,25 @@ template <> struct parse_tok_t<tuple<char_t<'^'>>> : returns<Exp> {};
 template <> struct parse_tok_t<tuple<char_t<'='>>> : returns<Assign> {};
 
 template <char... cs>
+  requires(... && (!isWhitespace(char_t<cs>{}) && !isParen(char_t<cs>{}) &&
+                   !isOp(char_t<cs>{})))
 struct parse_tok_t<tstr<cs...>> : returns<Varname<tstr<cs...>>> {};
+
+template <typename in> struct parse_t;
+template <typename in> using parse = parse_t<in>::type;
+
+template <char... cs>
+struct parse_t<tstr<cs...>>
+    : returns<apply<parse_tok_t, tokenize<filter<is_space, tstr<cs...>>>>> {};
 
 using n = parse_tok<to_tstr<"/">>;
 
 using number = parse_tok<to_tstr<"12">>;
+
+using var = parse_tok<to_tstr<"lxa">>;
+
+using expression = parse<to_tstr<"12 - 3">>;
+
 static_assert(number::value == 12, "number parsing has failed");
 
 template <typename str> struct parse_expr_t;

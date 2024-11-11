@@ -74,11 +74,21 @@ template <bool a, bool b> struct and_t {
 };
 template <bool a, bool b> constexpr static bool and_v = and_t<a, b>::value;
 
-template <typename, typename> struct cat_impl;
-template <typename T1, typename T2> using cat = cat_impl<T1, T2>::type;
+template <typename, typename> struct cat_t;
+template <typename T1, typename T2> using cat = cat_t<T1, T2>::type;
 
 template <typename... T1, typename... T2>
-struct cat_impl<tuple<T1...>, tuple<T2...>> : returns<tuple<T1..., T2...>> {};
+struct cat_t<tuple<T1...>, tuple<T2...>> : returns<tuple<T1..., T2...>> {};
+
+template <typename, typename> struct push_t;
+template <typename T1, typename T2> using push = push_t<T1, T2>::type;
+template <typename T1, typename... T2>
+struct push_t<T1, tuple<T2...>> : returns<tuple<T1, T2...>> {};
+
+template <typename, typename> struct append_t;
+template <typename T1, typename T2> using append = append_t<T1, T2>::type;
+template <typename T1, typename... T2>
+struct append_t<T1, tuple<T2...>> : returns<tuple<T2..., T1>> {};
 
 template <size_t index, typename> struct get_t;
 
@@ -148,3 +158,9 @@ template <template <typename> typename f, template <typename...> typename g>
 struct dot {
   template <typename... args> using type = f<typename g<args...>::type>::type;
 };
+
+template <template <typename> typename f, typename tuple> struct apply_t;
+template <template <typename> typename f, typename tuple>
+using apply = apply_t<f, tuple>::type;
+template <template <typename> typename f, typename... ts>
+struct apply_t<f, tuple<ts...>> : returns<tuple<typename f<ts>::type...>> {};
