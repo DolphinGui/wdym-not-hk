@@ -17,6 +17,9 @@ struct Mul {};
 struct Assign {};
 struct Exp {};
 
+struct OpenParen {};
+struct ClosedParen {};
+
 template <typename str> struct Varname;
 template <char... cs> struct Varname<tstr<cs...>> : returns<tstr<cs...>> {};
 
@@ -31,7 +34,9 @@ template <> struct Op<Mul> : returns<Mul> {};
 template <> struct Op<Assign> : returns<Assign> {};
 template <> struct Op<Exp> : returns<Exp> {};
 
-template <typename expr> struct Expression : returns<expr> {};
+template <typename expr> struct Expression;
+template <typename... es>
+struct Expression<tuple<es...>> : returns<tuple<es...>> {};
 
 template <typename chars> struct parse_tok_t;
 template <typename chars> using parse_tok = parse_tok_t<chars>::type;
@@ -77,9 +82,16 @@ template <> struct parse_tok_t<tuple<char_t<'/'>>> : returns<Div> {};
 template <> struct parse_tok_t<tuple<char_t<'^'>>> : returns<Exp> {};
 template <> struct parse_tok_t<tuple<char_t<'='>>> : returns<Assign> {};
 
+template <> struct parse_tok_t<tuple<char_t<'('>>> : returns<OpenParen> {};
+template <> struct parse_tok_t<tuple<char_t<')'>>> : returns<ClosedParen> {};
+
+template <typename> struct is_closed_t;
+template <> struct is_closed_t<ClosedParen> : true_t {};
+template <typename> struct is_closed_t : false_t {};
+
 template <char... cs>
-  requires(... && (!isWhitespace(char_t<cs>{}) && !isParen(char_t<cs>{}) &&
-                   !isOp(char_t<cs>{})))
+  requires(... && (!isNumeric(char_t<cs>{}) && !isParen(char_t<cs>{}) &&
+                   !isWhitespace(char_t<cs>{}) && !isOp(char_t<cs>{})))
 struct parse_tok_t<tstr<cs...>> : returns<Varname<tstr<cs...>>> {};
 
 template <typename in> struct parse_t;
@@ -89,20 +101,35 @@ template <char... cs>
 struct parse_t<tstr<cs...>>
     : returns<apply<parse_tok_t, tokenize<filter<is_space, tstr<cs...>>>>> {};
 
+template <typename parsed> struct parenthize_t;
+template <typename parsed> using parenthize = parenthize_t<parsed>::type;
+
+template <typename e>
+  requires(!std::is_same_v<e, OpenParen> && !std::is_same_v<e, ClosedParen>)
+struct parenthize_t<tuple<e>> : returns<tuple<e>> {};
+
+template <typename e, typename... es>
+  requires(!std::is_same_v<e, OpenParen> && !std::is_same_v<e, ClosedParen>)
+struct parenthize_t<tuple<e, es...>>
+    : returns<push<e, parenthize<tuple<es...>>>> {};
+
+template <typename e, typename... es>
+  requires(std::is_same_v<e, OpenParen>)
+struct parenthize_t<tuple<e, es...>>
+    : returns<push<typename delimitWhen<is_closed_t, tuple<es...>>::A,
+                   typename delimitWhen<is_closed_t, tuple<es...>>::B>> {};
+
 using n = parse_tok<to_tstr<"/">>;
 
 using number = parse_tok<to_tstr<"12">>;
 
-using var = parse_tok<to_tstr<"lxa">>;
+using var = parse_tok<to_tstr<"a">>;
 
-using expression = parse<to_tstr<"12 - 3">>;
+using l = tokenize<filter<is_space, to_tstr<"12 - 3">>>;
+using expression = parse<to_tstr<"v =(12 - 3) ^ 4">>;
+
+using par = parenthize<expression>;
 
 static_assert(number::value == 12, "number parsing has failed");
-
-template <typename str> struct parse_expr_t;
-
-template <typename... chars>
-  requires(... && isNumeric(chars{}))
-struct parse_expr_t<tuple<chars...>> {};
 
 int main() {}
