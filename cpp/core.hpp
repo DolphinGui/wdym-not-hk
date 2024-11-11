@@ -6,9 +6,7 @@
 
 template <typename T> using returns = std::type_identity<T>;
 
-template <typename T, T v> struct value_t {
-  constexpr static T value = v;
-};
+template <typename T, T v> using value_t = std::integral_constant<T, v>;
 
 template <char c> using char_t = value_t<char, c>;
 
@@ -21,6 +19,10 @@ template <intmax_t base> struct power_t<base, 0> : returns<int_t<1>> {};
 template <intmax_t base> struct power_t<base, 1> : returns<int_t<base>> {};
 template <intmax_t base, size_t exponent>
 struct power_t : returns<int_t<base * power<base, exponent - 1>::value>> {};
+
+template <bool b> using bool_t = value_t<bool, b>;
+using true_t = std::true_type;
+using false_t = std::false_type;
 
 template <typename... Ts> struct tuple;
 
@@ -149,7 +151,7 @@ struct filter__<pred, tuple<>, out> : returns<out> {};
 template <template <typename> typename pred, typename in, typename out>
 struct filter__
     : returns<if_else<pred<head<in>>::value, filter_t<pred, tail<in>, out>,
-                      filter_t<pred, tail<in>, cat<first<in>, out>>>> {};
+                      filter_t<pred, tail<in>, cat<out, first<in>>>>> {};
 
 template <template <typename> typename pred, typename in>
 using filter = filter_t<pred, in, tuple<>>;

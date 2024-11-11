@@ -99,11 +99,11 @@ template <typename a, typename b> struct split_types {
 
 template <typename str> struct tokenize__;
 template <typename str> using tokenize_ = tokenize__<str>::type;
-template <typename str> using tokenize = tail<tokenize_<str>>;
+template <typename str> using tokenize = drop_last<tokenize_<str>>;
 
 template <> struct tokenize__<tstr<>> : returns<tuple<tstr<>>> {};
 
 template <typename str>
 struct tokenize__
-    : returns<cat<tokenize_<typename splitWhen<split_types, str>::B>,
-                  tuple<typename splitWhen<split_types, str>::A>>> {};
+    : returns<push<typename splitWhen<split_types, str>::A,
+                   tokenize_<typename splitWhen<split_types, str>::B>>> {};
