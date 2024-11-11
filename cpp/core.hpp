@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <type_traits>
 
 template <typename T> using returns = std::type_identity<T>;
@@ -10,6 +11,7 @@ template <typename T, T v> struct value_t {
 };
 
 template <char c> using char_t = value_t<char, c>;
+template <intmax_t i> using int_t = value_t<intmax_t, i>;
 
 template <typename... Ts> struct tuple;
 
