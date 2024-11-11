@@ -27,28 +27,30 @@ template <typename chars> using parse = parse_t<chars>::type;
 
 template <char c>
   requires(isNumeric(char_t<c>{}))
-struct parse_t<tuple<char_t<c>>>
-    : returns<int_t<
-          c == '0'
-              ? 0
-              : (c == '1'
-                     ? 1
-                     : (c == '2'
-                            ? 2
-                            : (c == '3'
-                                   ? 3
-                                   : (c == '4'
-                                          ? 4
-                                          : (c == '5'
-                                                 ? 5
-                                                 : (c == '6'
-                                                        ? 6
-                                                        : (c == '7'
-                                                               ? 7
-                                                               : (c == '8'
-                                                                      ? 8
-                                                                      : 9))))))))>> {
-};
+struct parse_t<tuple<char_t<c>>> : returns<int_t<[] {
+  switch (c) {
+  case '0':
+    return 0;
+  case '1':
+    return 1;
+  case '2':
+    return 2;
+  case '3':
+    return 3;
+  case '4':
+    return 4;
+  case '5':
+    return 5;
+  case '6':
+    return 6;
+  case '7':
+    return 7;
+  case '8':
+    return 8;
+  case '9':
+    return 9;
+  }
+}()>> {};
 
 template <char front, char... chars>
 struct parse_t<tuple<char_t<front>, char_t<chars>...>>
