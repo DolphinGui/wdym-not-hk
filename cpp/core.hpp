@@ -96,20 +96,20 @@ struct last_t<tuple<t...>> : returns<get<sizeof...(t) - 1, tuple<t...>>> {};
 
 template <template <typename> typename pred,
           template <bool, bool> typename comb, typename tup>
-struct multi_;
+struct multi_t;
 template <template <typename> typename pred,
           template <bool, bool> typename comb, typename tup>
-constexpr static bool multi = multi_<pred, comb, tup>::value;
+constexpr static bool multi = multi_t<pred, comb, tup>::value;
 
 template <template <typename> typename pred,
           template <bool, bool> typename comb, typename a, typename b>
-struct multi_<pred, comb, tuple<a, b>> {
+struct multi_t<pred, comb, tuple<a, b>> {
   constexpr static bool value = comb<pred<a>::value, pred<b>::value>::value;
 };
 
 template <template <typename> typename pred,
           template <bool, bool> typename comb, typename c, typename... cs>
-struct multi_<pred, comb, tuple<c, cs...>> {
+struct multi_t<pred, comb, tuple<c, cs...>> {
   constexpr static bool value =
       comb<pred<c>::value, multi<pred, comb, tuple<cs...>>>::value;
 };
@@ -121,14 +121,19 @@ constexpr static bool all = multi<pred, and_t, tup>;
 template <template <typename> typename pred, typename in, typename out>
 struct filter__;
 template <template <typename> typename pred, typename in, typename out>
-using filter_ = filter__<pred, in, out>::type;
+using filter_t = filter__<pred, in, out>::type;
 
 template <template <typename> typename pred, typename out>
 struct filter__<pred, tuple<>, out> : returns<out> {};
 template <template <typename> typename pred, typename in, typename out>
 struct filter__
-    : returns<if_else<pred<head<in>>::value, filter_<pred, tail<in>, out>,
-                      filter_<pred, tail<in>, cat<first<in>, out>>>> {};
+    : returns<if_else<pred<head<in>>::value, filter_t<pred, tail<in>, out>,
+                      filter_t<pred, tail<in>, cat<first<in>, out>>>> {};
 
 template <template <typename> typename pred, typename in>
-using filter = filter_<pred, in, tuple<>>;
+using filter = filter_t<pred, in, tuple<>>;
+
+template <template <typename> typename f, template <typename...> typename g>
+struct dot {
+  template <typename... args> using type = f<typename g<args...>::type>::type;
+};

@@ -100,15 +100,16 @@ template <typename a, typename b> struct split_types {
   constexpr static bool value = !std::is_same_v<classify<a>, classify<b>>;
 };
 
-template <typename str> struct tokenize_;
-template <typename str> using tokenize = tokenize_<str>::type;
+template <typename str> struct tokenize__;
+template <typename str> using tokenize_ = tokenize__<str>::type;
+template <typename str> using tokenize = tail<tokenize_<str>>;
 
-template <> struct tokenize_<tstr<>> : returns<tuple<tstr<>>> {};
+template <> struct tokenize__<tstr<>> : returns<tuple<tstr<>>> {};
 
 template <typename str>
-struct tokenize_
-    : returns<cat<tuple<typename splitWhen<split_types, str>::A>,
-                  tokenize<typename splitWhen<split_types, str>::B>>> {};
+struct tokenize__
+    : returns<cat<tokenize_<typename splitWhen<split_types, str>::B>,
+                  tuple<typename splitWhen<split_types, str>::A>>> {};
 
 using hello_world = to_tstr<"Hello world!">;
 namespace scope {
@@ -121,9 +122,8 @@ static_assert(all<is_space, to_tstr<" \t  \n\t ">>, "all does not work");
 
 using m = splitWhen<split_types, hello_world>;
 
-using expr = to_tstr<"2 + 3 - 4">;
-using nospace = filter<is_space, expr>;
-using g = tokenize<expr>;
+using expr = to_tstr<"2 * 3 - 4">;
+using nospace = tokenize<filter<is_space, expr>>;
 
 int main() {
   auto tstr = tuple<hello_world>{};
