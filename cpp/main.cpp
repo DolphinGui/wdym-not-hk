@@ -17,17 +17,28 @@ struct Mul {};
 struct Assign {};
 struct Exp {};
 
-template <typename str> struct Varname : returns<str> {};
-template <typename num> struct Number : returns<num> {};
-template <typename operation> struct Op : returns<operation> {};
+template <typename str> struct Varname;
+template <char... cs> struct Varname<tstr<cs...>> : returns<tstr<cs...>> {};
+
+template <typename num> struct Number;
+template <intmax_t num> struct Number<int_t<num>> : returns<int_t<num>> {};
+
+template <typename operation> struct Op;
+template <> struct Op<Add> : returns<Add> {};
+template <> struct Op<Sub> : returns<Sub> {};
+template <> struct Op<Div> : returns<Div> {};
+template <> struct Op<Mul> : returns<Mul> {};
+template <> struct Op<Assign> : returns<Assign> {};
+template <> struct Op<Exp> : returns<Exp> {};
+
 template <typename expr> struct Expression : returns<expr> {};
 
-template <typename chars> struct parse_t;
-template <typename chars> using parse = parse_t<chars>::type;
+template <typename chars> struct parse_tok_t;
+template <typename chars> using parse_tok = parse_tok_t<chars>::type;
 
 template <char c>
   requires(isNumeric(char_t<c>{}))
-struct parse_t<tuple<char_t<c>>> : returns<int_t<[] {
+struct parse_tok_t<tuple<char_t<c>>> : returns<int_t<[] {
   switch (c) {
   case '0':
     return 0;
@@ -53,12 +64,25 @@ struct parse_t<tuple<char_t<c>>> : returns<int_t<[] {
 }()>> {};
 
 template <char front, char... chars>
-struct parse_t<tuple<char_t<front>, char_t<chars>...>>
-    : returns<int_t<parse<tuple<char_t<front>>>::value *
+  requires(isNumeric(char_t<front>{}))
+struct parse_tok_t<tuple<char_t<front>, char_t<chars>...>>
+    : returns<int_t<parse_tok<tuple<char_t<front>>>::value *
                         power<10, sizeof...(chars)>::value +
-                    parse<tuple<char_t<chars>...>>::value>> {};
+                    parse_tok<tuple<char_t<chars>...>>::value>> {};
 
-using number = parse<to_tstr<"12">>;
+template <> struct parse_tok_t<tuple<char_t<'+'>>> : returns<Add> {};
+template <> struct parse_tok_t<tuple<char_t<'-'>>> : returns<Sub> {};
+template <> struct parse_tok_t<tuple<char_t<'*'>>> : returns<Mul> {};
+template <> struct parse_tok_t<tuple<char_t<'/'>>> : returns<Div> {};
+template <> struct parse_tok_t<tuple<char_t<'^'>>> : returns<Exp> {};
+template <> struct parse_tok_t<tuple<char_t<'='>>> : returns<Assign> {};
+
+template <char... cs>
+struct parse_tok_t<tstr<cs...>> : returns<Varname<tstr<cs...>>> {};
+
+using n = parse_tok<to_tstr<"/">>;
+
+using number = parse_tok<to_tstr<"12">>;
 static_assert(number::value == 12, "number parsing has failed");
 
 template <typename str> struct parse_expr_t;
