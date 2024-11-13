@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "core.hpp"
+#include "tokenize.hpp"
 
 template <size_t len> struct str_const {
   char value[len]{};
@@ -47,3 +48,7 @@ template <str_const string>
 struct make_tstr_<string, _impl_getchar>
     : returns<cat<tuple<char_t<_impl_getchar(0, string)>>,
                   to_tstr<_impl_getsubstr(string)>>> {};
+
+template <char... cs> str_const<sizeof...(cs)> from_tstr(tstr<cs...>) {
+  return str_const({cs...});
+}

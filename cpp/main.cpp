@@ -1,19 +1,22 @@
 #include <cstdint>
 #include <fmt/format.h>
+#include <iostream>
+#include <ostream>
 #include <type_traits>
 
 #include "core.hpp"
 #include "format.hpp"
+#include "hashmap.hpp"
 #include "string.hpp"
 #include "tokenize.hpp"
 
 using expr = to_tstr<"2 * 3 - 4">;
 using nospace = tokenize<filter<is_space, expr>>;
 
-struct Add {};
-struct Sub {};
-struct Div {};
-struct Mul {};
+struct Add : std::plus<intmax_t> {};
+struct Sub : std::minus<intmax_t> {};
+struct Div : std::divides<intmax_t> {};
+struct Mul : std::multiplies<intmax_t> {};
 struct Assign {};
 struct Exp {};
 
@@ -119,17 +122,32 @@ struct parenthize_t<tuple<e, es...>>
     : returns<push<typename delimitWhen<is_closed_t, tuple<es...>>::A,
                    typename delimitWhen<is_closed_t, tuple<es...>>::B>> {};
 
+// template <typename lhs, > struct reduce;
+
+template <typename expr> struct reduce;
+
+template <typename e> struct reduce<tuple<e>> : returns<e> {};
+template <typename l, typename op, typename r, typename... other>
+struct reduce<tuple<l, op, r, other...>> : returns<int> {};
+
 using n = parse_tok<to_tstr<"/">>;
 
 using number = parse_tok<to_tstr<"12">>;
 
 using var = parse_tok<to_tstr<"a">>;
 
-using l = tokenize<filter<is_space, to_tstr<"12 - 3">>>;
-using expression = parse<to_tstr<"v =(12 - 3) ^ 4">>;
+// using l = tokenize<filter<is_space, to_tstr<"12 - 3">>>;
+// using expression = parse<to_tstr<"v =(12 - 3) ^ 4">>;
 
-using par = parenthize<expression>;
+// using par = parenthize<expression>;
 
 static_assert(number::value == 12, "number parsing has failed");
 
-int main() {}
+using s = to_tstr<"hello world!">;
+using s2 = to_tstr<"this is a key">;
+
+using map = tuple<pair<index_t<1>, int_t<1>>>;
+
+using v = access_t<index_t<1>, map>::type;
+
+int main() { std::println(std::cout, "v: {}", v::value); }

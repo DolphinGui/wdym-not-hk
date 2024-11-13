@@ -12,6 +12,8 @@ template <char c> using char_t = value_t<char, c>;
 
 template <intmax_t i> using int_t = value_t<intmax_t, i>;
 
+template <size_t i> using index_t = value_t<size_t, i>;
+
 template <intmax_t base, size_t exponent> struct power_t;
 template <intmax_t base, size_t exponent>
 using power = power_t<base, exponent>::type;

@@ -6,6 +6,7 @@ LDFLAGS:=-lfmt -Xlinker -Map=output.map
 OBJECTS = main.o       # object files forming executable
 DEPENDS = ${OBJECTS:.o=.d}    # substitutes ".o" with ".d"
 CPPFLAGS:= -I. -MMD
+CXX:=clang++
 
 test: main
 	./main
